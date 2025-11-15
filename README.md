@@ -1,0 +1,2 @@
+# EMC_Principle_GroupProject
+用于EMC小组大作业版本管理

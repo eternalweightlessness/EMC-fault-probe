@@ -141,6 +141,96 @@
 3. 步骤2测试完成，准确度达到要求后，使用PyQt5设计用户交互界面[^2][^3]；
 4. 可以尝试在程序中嵌入LLM[^4]，利用LLM进行模糊或近义语义匹配，优化用户体验。
 
+## 5.1 存储数据库
+
+
+
+## 5.2 Python脚本测试
+
+
+
+## 5.3 嵌入LLM
+
+在这一节，我们将详细讲述如何在本地部署LLM，并将其嵌入到基于Python的用户交互程序中，实现用户输入的语义模糊匹配。
+
+### 5.3.1 本地部署LLM
+
+这一步，我们参考网页资料[^5][^6]，使用Ollama平台进行本地部署。部署的测试模型参数为`Deepseek-r1 8b`，表示模型参数有80亿个。后续可以安装调试GPT、cursor等其他不同的大模型。
+
+本地部署的指令如下：
+
+```cmd
+ollama run deepseek-r1:8b
+```
+
+安装好Ollama后，将上述指令放在命令行当中运行。成功安装会显示如下结果：
+
+```cmd
+D:\Ollama>ollama run deepseek-r1:8b
+pulling manifest
+pulling e6a7edc1a4d7: 100% 5.2 GB
+pulling c5ad996bda6e: 100% 556 B
+pulling 6e4c38e1172f: 100% 1.1 KB
+pulling ed8474dc73db: 100% 179 B
+pulling f64cd5418e4b: 100% 487 B
+verifying sha256 digest
+writing manifest
+success
+```
+
+一些常用的命令：
+
+```cmd
+ollama run deepseek-r1:8b 运行本地大模型
+ollama rm deepseek-r1:8b 删除本地大模型
+ollama serve 启动Ollama服务
+ollama stop 停止Ollama服务
+ollama restart 重启Ollama服务
+ollama --help 查看帮助及可用命令
+ollama update 更新Ollama版本
+ollama clean 清理缓存
+
+/bye 或者ctrl+d 退出交互模式
+```
+
+Ollama教程链接：[Ollama 教程 | 菜鸟教程](https://www.runoob.com/ollama/ollama-tutorial.html)
+
+初始安装后，对模型进行问候，回复效果如下图所示。
+
+<img src="./README.assets/image-20251116141145385.png" alt="image-20251116141145385" style="zoom: 33%;" />
+
+### 5.3.2 Python脚本调用本地大模型解析文件
+
+我们使用Ollama工具部署的本地大语言模型，因此基于Ollama来进行文件的读取和解析。
+
+通过询问Deepseek，他向我们提供了如下方案：
+
+```python
+import requests
+
+url = "http://localhost:11434/api/generate"
+headers = {"Content-Type": "application/json"}
+data = {
+    "model": "your-model-name",  # 你拉取到的模型名称
+    "prompt": "你的完整提示，包括文件内容",
+    "stream": False,  # 设置为 False 获取一次性响应
+    "max_tokens": 256,
+    "temperature": 0.7
+}
+
+response = requests.post(url, json=data, headers=headers)
+result = response.json()
+print(result['response'])
+```
+
+接下来需要测试这一方案是否可行。先尝试将大模型的响应通过python控制台打印出来。
+
+### 5.3.3 调试本地大模型[^7]
+
+
+
+## 5.4 用户交互界面设计
+
 
 
 # 6.进阶任务
@@ -151,3 +241,6 @@
 [^2]: [Arduino开发ESP32-CAM模块 & 使用Python-PyQt5编写图传.exe独立程序_auduino图传-CSDN博客](https://blog.csdn.net/Zhuwany/article/details/128989573?spm=1001.2014.3001.5502)
 [^3]: [PyQt5 - 教程 - 菜鸟教程](https://www.cainiaoya.com/pyqt5/pyqt5-jiaocheng.html)
 [^4]: [30分钟内搞定！在本地电脑上部署属于你自己的大模型 - 知乎](https://zhuanlan.zhihu.com/p/1969812316003493816)
+[^5]:[本地部署大模型：Ollama安装（指定路径）和DeepSeek下载 - 知乎](https://zhuanlan.zhihu.com/p/24889002428)
+[^6]:[本地部署大模型：修改Ollama模型文件存储路径 - 知乎](https://zhuanlan.zhihu.com/p/27286614924#:~:text=本文会讲解如何修改Ollama模型文件的默认下载路径（以安装到D盘为例），前期已下载的模型文件直接剪切到这个路径下也可以实现自动调用。,第一步：右键“我的电脑”，并选择“属性”，点击“高级系统设置”，选择“环境变量”。 第二步：双击系统变量中Path那一行，点击“新建”，输入“D%3AOllama”，点击“确定”。)
+[^7]:[如何给本地部署的DeepSeek投喂数据，让他更懂你 - 知乎](https://zhuanlan.zhihu.com/p/24142666586)

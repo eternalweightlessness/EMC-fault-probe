@@ -199,11 +199,91 @@ Ollama教程链接：[Ollama 教程 | 菜鸟教程](https://www.runoob.com/ollam
 
 <img src="./README.assets/image-20251116141145385.png" alt="image-20251116141145385" style="zoom: 33%;" />
 
+<center>图  命令行中运行Ollama命令，调用本地LLM进行对话</center>
+
 ### 5.3.2 Python脚本调用本地大模型解析文件
 
 我们使用Ollama工具部署的本地大语言模型，因此基于Ollama来进行文件的读取和解析。
 
-通过询问Deepseek，他向我们提供了如下方案：
+#### 5.3.2.1 Python脚本调用本地大模型进行问答
+
+首先我们需要实现Python调用本地大模型进行简要问答的功能。经过查询相关代码以及本地调试，我们初步实现了在Python中调用不同的模型进行简单问答。代码如下：
+
+```python
+import subprocess
+import time
+
+from ollama import ChatResponse
+from ollama import chat
+
+model_name = 'deepseek-r1:8b'
+
+
+def start_ollama_background():
+    """在后台启动Ollama服务"""
+    try:
+        # 使用Popen在后台启动服务
+        process = subprocess.Popen(
+            ['ollama', 'run', model_name],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+
+        print(f"Ollama服务已启动，进程ID: {process.pid}")
+
+        # 让服务运行一段时间
+        time.sleep(1)
+
+        # 检查进程是否还在运行
+        if process.poll() is None:
+            print("Ollama服务正在运行中...")
+        else:
+            print("Ollama服务已停止")
+
+        return process
+
+    except Exception as e:
+        print(f"启动失败: {e}")
+        return None
+
+
+# 启动服务
+ollama_process = start_ollama_background()
+
+# %%
+try:
+    # 流式输出（即一个字一个字蹦）
+    response: ChatResponse = chat(
+        model=model_name,
+        messages=[{'role': 'user', 'content': '你好，你是谁？', }],
+        stream=True,
+    )
+    # print(response['message']['content'])
+    for chunk in response:
+        print(chunk['message']['content'], end='', flush=True)
+
+except Exception as e:
+    print(f"生成失败: {e}")
+
+# or access fields directly from the response object
+# print(response.message.content)
+```
+
+上述代码通过修改`model='deepseek-r1:8b'`这行代码中的字符串，可以修改所想要调用的模型。目前本地部署的模型有`deepseek-r1:7b`、`deepssek-r1:8b`以及`gpt-oss:20b`。运行上述代码，效果如下：
+
+<center class="half">
+    <img src="./README.assets/image-20251118111905175.png" width="320"/>
+    <img src="./README.assets/image-20251118112045456.png" width="300"/>
+</center>
+
+<center>图  调用deepseek和chatGPT的对话结果</center>
+
+#### 5.3.2.2 Python脚本调用本地大模型解析文件
+
+可以成功通过Python脚本调用大模型进行问答后，我们就需要尝试让大模型解析我们在第2节和第3节中所得到的json格式的文件，为实现后续数据库查询功能做技术积累。
+
+通过询问Deepseek，它向我们提供了如下方案：
 
 ```python
 import requests

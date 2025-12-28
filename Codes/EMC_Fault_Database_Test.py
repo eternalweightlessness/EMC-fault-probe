@@ -24,7 +24,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         self.sendPushButton.clicked.connect(self.sendPushButtonClicked)
 
         # 全局变量
-        self.json_file_path = "dataStore.json"  # json文件的相对路径
+        self.json_file_path = "12.29.json"  # json文件的相对路径
         self.readJsonData = None  # 读取json文件得到的数据
         self.searchTextfromUserInput = None  # 来自用户输入的要搜索的字段
         self.target_field = None  # 目标字段

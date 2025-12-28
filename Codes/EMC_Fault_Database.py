@@ -31,7 +31,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.setObjectName("verticalLayout")
         self.BUAALabel = QtWidgets.QLabel(self.centralwidget)
         self.BUAALabel.setText("")
-        self.BUAALabel.setPixmap(QtGui.QPixmap("../../../../../各类PPT/PPT素材/BUAA-白底蓝字.png"))
+        self.BUAALabel.setPixmap(QtGui.QPixmap("BUAA-白底蓝字.png"))
         self.BUAALabel.setScaledContents(False)
         self.BUAALabel.setAlignment(QtCore.Qt.AlignCenter)
         self.BUAALabel.setObjectName("BUAALabel")

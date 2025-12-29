@@ -4,7 +4,7 @@ import time
 from ollama import ChatResponse
 from ollama import chat
 
-model_name = 'gpt-oss:20b'
+model_name = 'deepseek-r1:8b'
 
 
 def start_ollama_background():
@@ -41,15 +41,16 @@ ollama_process = start_ollama_background()
 
 # %%
 try:
-    # 流式输出（即一个字一个字蹦）
+    contents = '请提取出“传导发射与辐射发射超标”的关键词，只输出关键词，不要有任何其他的输出'
+    # 直接输出
     response: ChatResponse = chat(
         model=model_name,
-        messages=[{'role': 'user', 'content': '你好，你是谁？', }],
-        stream=True,
+        messages=[{'role': 'user', 'content': contents, }],
+        stream=False,
     )
-    # print(response['message']['content'])
-    for chunk in response:
-        print(chunk['message']['content'], end='', flush=True)
+    print(response['message']['content'])
+    # for chunk in response:
+    #     print(chunk['message']['content'], end='', flush=True)
 
 except Exception as e:
     print(f"生成失败: {e}")

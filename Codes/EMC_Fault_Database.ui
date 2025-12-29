@@ -103,17 +103,17 @@
       </property>
      </spacer>
     </item>
-    <item alignment="Qt::AlignHCenter">
+    <item>
      <widget class="QLabel" name="noticeLabel">
       <property name="minimumSize">
        <size>
-        <width>0</width>
+        <width>600</width>
         <height>60</height>
        </size>
       </property>
       <property name="maximumSize">
        <size>
-        <width>600</width>
+        <width>16777215</width>
         <height>60</height>
        </size>
       </property>
@@ -131,7 +131,7 @@
 }</string>
       </property>
       <property name="text">
-       <string>请输入您的EMC故障</string>
+       <string>请输入您想要查询的内容</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
@@ -245,30 +245,32 @@
       </property>
      </spacer>
     </item>
-    <item alignment="Qt::AlignHCenter">
-     <widget class="QPushButton" name="sendPushButton">
-      <property name="minimumSize">
-       <size>
-        <width>200</width>
-        <height>60</height>
-       </size>
-      </property>
-      <property name="maximumSize">
-       <size>
-        <width>200</width>
-        <height>16777215</height>
-       </size>
-      </property>
-      <property name="font">
-       <font>
-        <family>HarmonyOS Sans SC Medium</family>
-        <pointsize>15</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">QPushButton { 
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QPushButton" name="sendPushButton">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>HarmonyOS Sans SC Medium</family>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton { 
     background-color: white ;
 }QPushButton{
     color:black;
@@ -282,11 +284,99 @@ QPushButton:hover{
 QPushButton:pressed{
     background:white;
 }</string>
-      </property>
-      <property name="text">
-       <string>发送</string>
-      </property>
-     </widget>
+        </property>
+        <property name="text">
+         <string>发送</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="saveDataPushButton">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>HarmonyOS Sans SC Medium</family>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton { 
+    background-color: white ;
+}QPushButton{
+    color:black;
+    border-radius: 10px;
+    background:rgb(255, 255, 255);
+    border:3px solid black;
+}
+QPushButton:hover{
+    background:rgb(237, 108, 0, 150);
+}
+QPushButton:pressed{
+    background:white;
+}</string>
+        </property>
+        <property name="text">
+         <string>保存数据</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="exitPushButton">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>60</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>HarmonyOS Sans SC Medium</family>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton { 
+    background-color: white ;
+}QPushButton{
+    color:black;
+    border-radius: 10px;
+    background:rgb(255, 255, 255);
+    border:3px solid black;
+}
+QPushButton:hover{
+    background:rgb(237, 108, 0, 150);
+}
+QPushButton:pressed{
+    background:white;
+}</string>
+        </property>
+        <property name="text">
+         <string>退出程序</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <spacer name="verticalSpacer_4">
@@ -304,7 +394,7 @@ QPushButton:pressed{
       </property>
      </spacer>
     </item>
-    <item alignment="Qt::AlignHCenter">
+    <item>
      <widget class="QLabel" name="infoLabel">
       <property name="minimumSize">
        <size>

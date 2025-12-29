@@ -1,8 +1,10 @@
 import os
 import sys
 import json
+import re
 import traceback
 import pandas as pd
+from ollama import chat   # ===== 修改点 1：引入 LLM =====
 
 import EMC_Fault_Database
 from PyQt5.QtGui import QImage, QPixmap, QIcon, QStandardItemModel, QStandardItem, QFont
@@ -33,6 +35,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         self.search_string = None  # 搜索字段
         self.search_results_exact = []  # 精确字段匹配的结果
 
+        #self.enable_llm_fuzzy = True   #选择开/关模糊搜索
         # 数据保存
         self.save_data_path = ""  # 数据保存的文件路径
 
@@ -104,7 +107,34 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
             # 2. 筛选包含搜索字符串的词条
             if self.userInputTextEdit.toPlainText() != "":
                 # 获取
-                self.search_string = str(self.userInputTextEdit.toPlainText())
+                user_input = str(self.userInputTextEdit.toPlainText())#self.search_string = str(self.userInputTextEdit.toPlainText())
+                # 调用 LLM，把用户输入扩展为多个关键词
+                # ==================================================
+                fuzzy_keywords = self.llm_generate_fuzzy_keywords(user_input)
+                # 兜底：至少保证有原词
+                if not fuzzy_keywords:
+                    fuzzy_keywords = [user_input]
+
+                self.search_results_exact = []  # 保证是干净的
+                seen = set()  # 用于去重
+                for self.search_string in fuzzy_keywords:
+
+                    for item in self.readJsonData:
+                        if self.target_field:
+                            if self.target_field in item and isinstance(item[self.target_field], str):
+                                if self.search_string in item[self.target_field]:
+                                    item_id = json.dumps(item, ensure_ascii=False)
+                                    if item_id not in seen:
+                                        seen.add(item_id)
+                                        self.search_results_exact.append(item)
+                        else:
+                            for value in item.values():
+                                if isinstance(value, str) and self.search_string in value:
+                                    item_id = json.dumps(item, ensure_ascii=False)
+                                    if item_id not in seen:
+                                        seen.add(item_id)
+                                        self.search_results_exact.append(item)
+                                    break
 
                 # print(self.search_string) # 调试用
                 for item in self.readJsonData:
@@ -146,6 +176,36 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         except Exception as e:
             error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
             QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
+
+    def llm_generate_fuzzy_keywords(self, user_keyword):
+        from ollama import chat
+        import re, json
+
+        prompt = f"""
+    请根据输入的电磁兼容故障关键词，生成用于模糊搜索的关键词。
+    只返回 JSON 数组，不要解释。
+    示例：["传导发射", "辐射发射超标"]
+
+    输入关键词：
+    "{user_keyword}"
+    """
+
+        try:
+            resp = chat(
+                model="deepseek-r1:8b",
+                messages=[{"role": "user", "content": prompt}],
+                stream=False
+            )
+
+            content = resp["message"]["content"]
+            match = re.search(r"\[[\s\S]*?\]", content)
+            if match:
+                return json.loads(match.group())
+
+        except Exception as e:
+            print("LLM 关键词生成失败:", e)
+
+        return [user_keyword]
 
     def save_userdata_pushButtonClicked(self):
         try:

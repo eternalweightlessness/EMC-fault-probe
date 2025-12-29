@@ -1,16 +1,13 @@
+import os
 import sys
 import json
 import traceback
+import pandas as pd
 
 import EMC_Fault_Database
 from PyQt5.QtGui import QImage, QPixmap, QIcon, QStandardItemModel, QStandardItem, QFont
-from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QMessageBox, QFileDialog
 from PyQt5.QtCore import QTimer, QThread
-
-import warnings
-
-warnings.filterwarnings("ignore", message="iCCP")
-warnings.resetwarnings()
 
 
 class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
@@ -22,14 +19,22 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
 
         # 将“发送”按钮的信号与Slot函数连接
         self.sendPushButton.clicked.connect(self.sendPushButtonClicked)
+        # 将“保存数据”按钮的信号与Slot函数连接
+        self.saveDataPushButton.clicked.connect(self.save_userdata_pushButtonClicked)
+        # 将“退出程序”按钮的信号与Slot函数连接
+        self.exitPushButton.clicked.connect(self.exitPushButtonClicked)
 
         # 全局变量
-        self.json_file_path = "dataStore.json"  # json文件的相对路径
-        self.readJsonData = None  # 读取json文件得到的数据
+        # 字符串匹配
+        self.json_dir = "."  # 读取当前目录下的所有json文件
+        self.readJsonData = []  # 读取json文件得到的数据
         self.searchTextfromUserInput = None  # 来自用户输入的要搜索的字段
         self.target_field = None  # 目标字段
         self.search_string = None  # 搜索字段
         self.search_results_exact = []  # 精确字段匹配的结果
+
+        # 数据保存
+        self.save_data_path = ""  # 数据保存的文件路径
 
     def resetdispTableView(self):
         # 规定水平表头标签
@@ -54,13 +59,31 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         vheader = self.dispTableView.verticalHeader()
         vheader.setSectionResizeMode(QHeaderView.Stretch)
 
+    # def load_json_file(self):
+    #     try:
+    #         with open(self.json_file_path, 'r', encoding='utf-8') as f:
+    #             self.readJsonData = json.load(f)
+    #     except Exception as e:
+    #         error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
+    #         QMessageBox.critical(self, '系统错误', f'发生未知错误:\n{error_details}')
     def load_json_file(self):
         try:
-            with open(self.json_file_path, 'r', encoding='utf-8') as f:
-                self.readJsonData = json.load(f)
+            json_dir = self.json_dir
+
+            # 遍历指定目录下的所有文件
+            for filename in os.listdir(json_dir):
+                if filename.endswith('.json'):
+                    file_path = os.path.join(json_dir, filename)
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        # 假设每个json文件都是列表或字典，统一合并到readJsonData列表中
+                        if isinstance(data, list):
+                            self.readJsonData.extend(data)
+                        elif isinstance(data, dict):
+                            self.readJsonData.append(data)
         except Exception as e:
             error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
-            QMessageBox.critical(self, '系统错误', f'发生未知错误:\n{error_details}')
+            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
 
     def sendPushButtonClicked(self):
         """
@@ -114,16 +137,70 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
 
             else:
                 self.infoLabel.setText("请您输入文本！")
-
         except FileNotFoundError:
             error_details = f"错误：文件 '{self.json_file_path}' 未找到"
-            QMessageBox.critical(self, '系统错误', f'发生未知错误:\n{error_details}')
+            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
         except json.JSONDecodeError:
             error_details = f"错误：文件 '{self.json_file_path}' 不是有效的JSON格式"
-            QMessageBox.critical(self, '系统错误', f'发生未知错误:\n{error_details}')
+            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
         except Exception as e:
             error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
-            QMessageBox.critical(self, '系统错误', f'发生未知错误:\n{error_details}')
+            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
+
+    def save_userdata_pushButtonClicked(self):
+        try:
+            self.save_data_path = QFileDialog.getSaveFileName(
+                None,
+                "选择目录",
+                "",
+                "Excel Files (*.xlsx);;All Files (*)"
+                # QFileDialog.ShowDirsOnly,
+            )
+            # print(self.save_data_path) # 调试用
+
+            to_save_model = self.dispTableView.model()
+            # 获取行数和列数
+            row_count = to_save_model.rowCount()
+            col_count = to_save_model.columnCount()
+            if row_count > 0 and col_count > 0:
+                # 提取表头
+                headers = []
+                for col in range(col_count):
+                    # 获取列标题
+                    header = to_save_model.headerData(col, 1)  # 1表示水平表头
+                    if header is None:
+                        header = f"Column_{col + 1}"
+                    headers.append(header)
+
+                # 提取表格数据
+                data = []
+                for row in range(row_count):
+                    row_data = []
+                    for col in range(col_count):
+                        index = to_save_model.index(row, col)
+                        # 0表示显示表头角色的数据
+                        value = to_save_model.data(index, 0)
+                        row_data.append(value if value is not None else "")
+                    data.append(row_data)
+
+                # 使用pandas创建DataFrame并保存为Excel
+                df = pd.DataFrame(data, columns=headers)
+                df.to_excel(self.save_data_path[0], index=False)
+                self.infoLabel.setText("数据保存完成")
+            else:
+                self.infoLabel.setText("警告：表格数据为空！")
+        except Exception as e:
+            error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
+            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
+            # print(error_details) # 调试用
+
+    def exitPushButtonClicked(self):
+        try:
+            sys.exit(app.exec_())
+        except Exception as e:
+            error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
+            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
+
 
 
 if __name__ == '__main__':

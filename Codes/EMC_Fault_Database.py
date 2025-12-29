@@ -54,8 +54,8 @@ class Ui_MainWindow(object):
         spacerItem1 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout.addItem(spacerItem1)
         self.noticeLabel = QtWidgets.QLabel(self.centralwidget)
-        self.noticeLabel.setMinimumSize(QtCore.QSize(0, 60))
-        self.noticeLabel.setMaximumSize(QtCore.QSize(600, 60))
+        self.noticeLabel.setMinimumSize(QtCore.QSize(600, 60))
+        self.noticeLabel.setMaximumSize(QtCore.QSize(16777215, 60))
         font = QtGui.QFont()
         font.setFamily("HarmonyOS Sans SC Medium")
         font.setPointSize(15)
@@ -67,7 +67,7 @@ class Ui_MainWindow(object):
 "}")
         self.noticeLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.noticeLabel.setObjectName("noticeLabel")
-        self.verticalLayout.addWidget(self.noticeLabel, 0, QtCore.Qt.AlignHCenter)
+        self.verticalLayout.addWidget(self.noticeLabel)
         spacerItem2 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout.addItem(spacerItem2)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
@@ -97,12 +97,14 @@ class Ui_MainWindow(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
         spacerItem5 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout.addItem(spacerItem5)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.sendPushButton = QtWidgets.QPushButton(self.centralwidget)
         self.sendPushButton.setMinimumSize(QtCore.QSize(200, 60))
         self.sendPushButton.setMaximumSize(QtCore.QSize(200, 16777215))
         font = QtGui.QFont()
         font.setFamily("HarmonyOS Sans SC Medium")
-        font.setPointSize(15)
+        font.setPointSize(12)
         font.setBold(True)
         font.setWeight(75)
         self.sendPushButton.setFont(font)
@@ -121,7 +123,58 @@ class Ui_MainWindow(object):
 "    background:white;\n"
 "}")
         self.sendPushButton.setObjectName("sendPushButton")
-        self.verticalLayout.addWidget(self.sendPushButton, 0, QtCore.Qt.AlignHCenter)
+        self.horizontalLayout_2.addWidget(self.sendPushButton)
+        self.saveDataPushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.saveDataPushButton.setMinimumSize(QtCore.QSize(200, 60))
+        self.saveDataPushButton.setMaximumSize(QtCore.QSize(200, 16777215))
+        font = QtGui.QFont()
+        font.setFamily("HarmonyOS Sans SC Medium")
+        font.setPointSize(12)
+        font.setBold(True)
+        font.setWeight(75)
+        self.saveDataPushButton.setFont(font)
+        self.saveDataPushButton.setStyleSheet("QPushButton { \n"
+"    background-color: white ;\n"
+"}QPushButton{\n"
+"    color:black;\n"
+"    border-radius: 10px;\n"
+"    background:rgb(255, 255, 255);\n"
+"    border:3px solid black;\n"
+"}\n"
+"QPushButton:hover{\n"
+"    background:rgb(237, 108, 0, 150);\n"
+"}\n"
+"QPushButton:pressed{\n"
+"    background:white;\n"
+"}")
+        self.saveDataPushButton.setObjectName("saveDataPushButton")
+        self.horizontalLayout_2.addWidget(self.saveDataPushButton)
+        self.exitPushButton = QtWidgets.QPushButton(self.centralwidget)
+        self.exitPushButton.setMinimumSize(QtCore.QSize(200, 60))
+        self.exitPushButton.setMaximumSize(QtCore.QSize(200, 16777215))
+        font = QtGui.QFont()
+        font.setFamily("HarmonyOS Sans SC Medium")
+        font.setPointSize(12)
+        font.setBold(True)
+        font.setWeight(75)
+        self.exitPushButton.setFont(font)
+        self.exitPushButton.setStyleSheet("QPushButton { \n"
+"    background-color: white ;\n"
+"}QPushButton{\n"
+"    color:black;\n"
+"    border-radius: 10px;\n"
+"    background:rgb(255, 255, 255);\n"
+"    border:3px solid black;\n"
+"}\n"
+"QPushButton:hover{\n"
+"    background:rgb(237, 108, 0, 150);\n"
+"}\n"
+"QPushButton:pressed{\n"
+"    background:white;\n"
+"}")
+        self.exitPushButton.setObjectName("exitPushButton")
+        self.horizontalLayout_2.addWidget(self.exitPushButton)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
         spacerItem6 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout.addItem(spacerItem6)
         self.infoLabel = QtWidgets.QLabel(self.centralwidget)
@@ -135,7 +188,7 @@ class Ui_MainWindow(object):
         self.infoLabel.setText("")
         self.infoLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.infoLabel.setObjectName("infoLabel")
-        self.verticalLayout.addWidget(self.infoLabel, 0, QtCore.Qt.AlignHCenter)
+        self.verticalLayout.addWidget(self.infoLabel)
         spacerItem7 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
         self.verticalLayout.addItem(spacerItem7)
         self.dispTableView = QtWidgets.QTableView(self.centralwidget)
@@ -188,6 +241,8 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.titleLabel.setText(_translate("MainWindow", "电磁兼容故障库（中文资料）"))
-        self.noticeLabel.setText(_translate("MainWindow", "请输入您的EMC故障"))
+        self.noticeLabel.setText(_translate("MainWindow", "请输入您想要查询的内容"))
         self.sendPushButton.setText(_translate("MainWindow", "发送"))
+        self.saveDataPushButton.setText(_translate("MainWindow", "保存数据"))
+        self.exitPushButton.setText(_translate("MainWindow", "退出程序"))
         self.label.setText(_translate("MainWindow", "第20组 朱宛瑜 皇甫依扬 刘子晗"))

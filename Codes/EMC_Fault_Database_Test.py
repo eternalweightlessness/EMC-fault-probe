@@ -4,12 +4,55 @@ import json
 import re
 import traceback
 import pandas as pd
-from ollama import chat   # ===== 修改点 1：引入 LLM =====
-
 import EMC_Fault_Database
-from PyQt5.QtGui import QImage, QPixmap, QIcon, QStandardItemModel, QStandardItem, QFont
+import subprocess
+import time
+
+from ollama import chat
+
+from PyQt5.QtGui import QIcon, QStandardItemModel, QStandardItem, QFont
 from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QMessageBox, QFileDialog
-from PyQt5.QtCore import QTimer, QThread
+from PyQt5.QtCore import pyqtSignal, QThread
+
+
+class LLMWorker(QThread):
+    # 定义信号，用于将LLM生成的结果发送回主线程
+    keywords_ready = pyqtSignal(list)
+
+    def __init__(self, user_keyword):
+        super().__init__()
+        self.user_keyword = user_keyword
+
+    def run(self):
+        try:
+            prompt = f"""
+                请根据用户输入的电磁兼容故障关键词，生成用于模糊搜索的关键词。
+                只返回 JSON 数组，不要解释。
+                示例：["传导发射", "传导发射超标", "辐射发射超标"]
+
+                输入关键词：
+                "{self.user_keyword}"
+                """
+
+            resp = chat(
+                model="deepseek-r1:8b",
+                messages=[{"role": "user", "content": prompt}],
+                stream=False
+            )
+
+            content = resp["message"]["content"]
+            match = re.search(r"\[[\s\S]*?\]", content)
+            if match:
+                keywords = json.loads(match.group())
+            else:
+                keywords = [self.user_keyword]
+
+        except Exception as e:
+            print("LLM 关键词生成失败:", e)
+            keywords = [self.user_keyword]
+
+        # 通过信号发送结果
+        self.keywords_ready.emit(keywords)
 
 
 class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
@@ -27,6 +70,9 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         self.exitPushButton.clicked.connect(self.exitPushButtonClicked)
 
         # 全局变量
+        # QTableView更新
+        self.model = None
+
         # 字符串匹配
         self.json_dir = "."  # 读取当前目录下的所有json文件
         self.readJsonData = []  # 读取json文件得到的数据
@@ -35,9 +81,18 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         self.search_string = None  # 搜索字段
         self.search_results_exact = []  # 精确字段匹配的结果
 
-        #self.enable_llm_fuzzy = True   #选择开/关模糊搜索
-        # 数据保存
+        # LLM线程相关变量
+        self.ollama_available = self.check_ollama_available()
+        self.llm_worker = None
+
+        # 数据保存相关变量
         self.save_data_path = ""  # 数据保存的文件路径
+
+        # 显示Ollama状态
+        if self.ollama_available:
+            self.infoLabel.setText("系统已连接至ollama，支持模糊搜索")
+        else:
+            self.infoLabel.setText("未检测到本地ollama服务，使用精确匹配搜索")
 
     def resetdispTableView(self):
         # 规定水平表头标签
@@ -62,13 +117,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         vheader = self.dispTableView.verticalHeader()
         vheader.setSectionResizeMode(QHeaderView.Stretch)
 
-    # def load_json_file(self):
-    #     try:
-    #         with open(self.json_file_path, 'r', encoding='utf-8') as f:
-    #             self.readJsonData = json.load(f)
-    #     except Exception as e:
-    #         error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
-    #         QMessageBox.critical(self, '系统错误', f'发生未知错误:\n{error_details}')
+
     def load_json_file(self):
         try:
             json_dir = self.json_dir
@@ -89,82 +138,30 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
             QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
 
     def sendPushButtonClicked(self):
-        """
-        在JSON文件中搜索包含特定字符串的词条
-
-        Args:
-            file_path (str): JSON文件路径
-            search_string (str): 要搜索的字符串
-            target_field (str, optional): 指定搜索的字段名，如果为None则搜索所有字段
-
-        Returns:
-            list: 包含搜索字符串的词条列表
-        """
         try:
             # 重置表格
             self.resetdispTableView()
-            # 1. 读取JSON文件，这一步已在load_json_file函数中执行并存储在self.readJsonData变量中
-            # 2. 筛选包含搜索字符串的词条
+            # 判断输入框是否为空
             if self.userInputTextEdit.toPlainText() != "":
-                # 获取
-                user_input = str(self.userInputTextEdit.toPlainText())#self.search_string = str(self.userInputTextEdit.toPlainText())
-                # 调用 LLM，把用户输入扩展为多个关键词
-                # ==================================================
-                fuzzy_keywords = self.llm_generate_fuzzy_keywords(user_input)
-                # 兜底：至少保证有原词
-                if not fuzzy_keywords:
-                    fuzzy_keywords = [user_input]
-
-                self.search_results_exact = []  # 保证是干净的
-                seen = set()  # 用于去重
-                for self.search_string in fuzzy_keywords:
-
-                    for item in self.readJsonData:
-                        if self.target_field:
-                            if self.target_field in item and isinstance(item[self.target_field], str):
-                                if self.search_string in item[self.target_field]:
-                                    item_id = json.dumps(item, ensure_ascii=False)
-                                    if item_id not in seen:
-                                        seen.add(item_id)
-                                        self.search_results_exact.append(item)
-                        else:
-                            for value in item.values():
-                                if isinstance(value, str) and self.search_string in value:
-                                    item_id = json.dumps(item, ensure_ascii=False)
-                                    if item_id not in seen:
-                                        seen.add(item_id)
-                                        self.search_results_exact.append(item)
-                                    break
-
-                # print(self.search_string) # 调试用
-                for item in self.readJsonData:
-                    # 如果self.target_field有值，则在target_field中搜索
-                    # 如果self.target_field没有值，则在json文件中的所有字段中搜索
-                    if self.target_field:
-                        # 只在指定字段中搜索
-                        if self.target_field in item and isinstance(item[self.target_field], str):
-                            if self.search_string in item[self.target_field]:
-                                self.search_results_exact.append(item)
-                    else:
-                        # 在所有字段中搜索
-                        for value in item.values():
-                            if isinstance(value, str) and self.search_string in value:
-                                self.search_results_exact.append(item)
-                                break
-
-                self.infoLabel.setText(self.search_string + f"——找到 {len(self.search_results_exact)} 条匹配结果\n")
-                # print(self.search_results_exact) # 调试用
-                for i, entry in enumerate(self.search_results_exact):
-                    self.model.setItem(i, 0, QStandardItem(entry.get('故障对象', '')))
-                    self.model.setItem(i, 1, QStandardItem(entry.get('故障现象', '')))
-                    self.model.setItem(i, 2, QStandardItem(entry.get('故障原因', '')))
-                    self.model.setItem(i, 3, QStandardItem(entry.get('解决方案', '')))
-                    self.model.setItem(i, 4, QStandardItem(entry.get('故障等级', '')))
-                    self.model.setItem(i, 5, QStandardItem(entry.get('发生频率', '')))
-                    self.dispTableView.setModel(self.model)
-
-                self.search_results_exact = []
-
+                # 获取用户输入
+                user_input = str(
+                    self.userInputTextEdit.toPlainText())
+                # 禁用发送按钮，防止重复点击
+                self.sendPushButton.setEnabled(False)
+                # 判断本地LLM大模型是否可用
+                # 可用则使用大模型进行关键词模糊匹配
+                if self.ollama_available:
+                    self.infoLabel.setText("正在生成搜索关键词...")
+                    # 创建并启动LLM工作线程
+                    self.llm_worker = LLMWorker(user_input)
+                    self.llm_worker.keywords_ready.connect(self.handle_llm_keywords)
+                    self.llm_worker.finished.connect(self.llm_thread_finished)
+                    self.llm_worker.start()
+                # 本地LLM不可用，直接使用精确匹配
+                else:
+                    self.infoLabel.setText("正在使用精确匹配搜索...")
+                    self.do_exact_search([user_input])
+                    self.sendPushButton.setEnabled(True)
             else:
                 self.infoLabel.setText("请您输入文本！")
         except FileNotFoundError:
@@ -177,35 +174,113 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
             error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
             QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
 
-    def llm_generate_fuzzy_keywords(self, user_keyword):
-        from ollama import chat
-        import re, json
+    def handle_llm_keywords(self, fuzzy_keywords):
+        self.search_results_exact = []
+        seen = set()
+        # 处理LLM返回的关键词并执行搜索
+        for search_string in fuzzy_keywords:
+            for item in self.readJsonData:
+                if self.target_field:
+                    if self.target_field in item and isinstance(item[self.target_field], str):
+                        if search_string in item[self.target_field]:
+                            item_id = json.dumps(item, ensure_ascii=False)
+                            if item_id not in seen:
+                                seen.add(item_id)
+                                self.search_results_exact.append(item)
+                else:
+                    for value in item.values():
+                        if isinstance(value, str) and search_string in value:
+                            item_id = json.dumps(item, ensure_ascii=False)
+                            if item_id not in seen:
+                                seen.add(item_id)
+                                self.search_results_exact.append(item)
+                            break
+        # 更新UI显示结果
+        user_input = str(self.userInputTextEdit.toPlainText())
+        self.infoLabel.setText(user_input + f"——找到 {len(self.search_results_exact)} 条匹配结果\n")
+        # 更新表格
+        for i, entry in enumerate(self.search_results_exact):
+            self.model.setItem(i, 0, QStandardItem(entry.get('故障对象', '')))
+            self.model.setItem(i, 1, QStandardItem(entry.get('故障现象', '')))
+            self.model.setItem(i, 2, QStandardItem(entry.get('故障原因', '')))
+            self.model.setItem(i, 3, QStandardItem(entry.get('解决方案', '')))
+            self.model.setItem(i, 4, QStandardItem(entry.get('故障等级', '')))
+            self.model.setItem(i, 5, QStandardItem(entry.get('发生频率', '')))
+        self.dispTableView.setModel(self.model)
+        self.search_results_exact = []
 
-        prompt = f"""
-    请根据输入的电磁兼容故障关键词，生成用于模糊搜索的关键词。
-    只返回 JSON 数组，不要解释。
-    示例：["传导发射", "辐射发射超标"]
+    def llm_thread_finished(self):
+        # LLM线程完成后清理
+        self.sendPushButton.setEnabled(True)
 
-    输入关键词：
-    "{user_keyword}"
-    """
-
+    def check_ollama_available(self):
+        """检查本地是否有ollama部署的大模型服务"""
         try:
-            resp = chat(
-                model="deepseek-r1:8b",
-                messages=[{"role": "user", "content": prompt}],
-                stream=False
-            )
+            # 尝试调用ollama list命令检查服务状态
+            result = subprocess.run(['ollama', 'list'],
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=5)
 
-            content = resp["message"]["content"]
-            match = re.search(r"\[[\s\S]*?\]", content)
-            if match:
-                return json.loads(match.group())
+            if result.returncode == 0:
+                # 检查是否有可用的模型
+                output = result.stdout.lower()
+                if "deepseek-r1" in output or "qwen" in output or "llama" in output:
+                    return True
+                else:
+                    print("警告：ollama服务运行中，但未找到支持的模型")
+                    return False
+            else:
+                print(f"ollama服务不可用: {result.stderr}")
+                return False
 
+        except FileNotFoundError:
+            print("ollama命令未找到，请确认是否已安装")
+            return False
+        except subprocess.TimeoutExpired:
+            print("连接ollama服务超时")
+            return False
         except Exception as e:
-            print("LLM 关键词生成失败:", e)
+            print(f"检查ollama服务时出错: {e}")
+            return False
 
-        return [user_keyword]
+    def do_exact_search(self, keywords):
+        """执行精确匹配搜索"""
+        self.search_results_exact = []
+        seen = set()
+
+        for search_string in keywords:
+            for item in self.readJsonData:
+                if self.target_field:
+                    if self.target_field in item and isinstance(item[self.target_field], str):
+                        if search_string in item[self.target_field]:
+                            item_id = json.dumps(item, ensure_ascii=False)
+                            if item_id not in seen:
+                                seen.add(item_id)
+                                self.search_results_exact.append(item)
+                else:
+                    for value in item.values():
+                        if isinstance(value, str) and search_string in value:
+                            item_id = json.dumps(item, ensure_ascii=False)
+                            if item_id not in seen:
+                                seen.add(item_id)
+                                self.search_results_exact.append(item)
+                            break
+
+        # 更新UI显示结果
+        user_input = str(self.userInputTextEdit.toPlainText())
+        self.infoLabel.setText(f"{user_input}——找到 {len(self.search_results_exact)} 条匹配结果")
+
+        for i, entry in enumerate(self.search_results_exact):
+            self.model.setItem(i, 0, QStandardItem(entry.get('故障对象', '')))
+            self.model.setItem(i, 1, QStandardItem(entry.get('故障现象', '')))
+            self.model.setItem(i, 2, QStandardItem(entry.get('故障原因', '')))
+            self.model.setItem(i, 3, QStandardItem(entry.get('解决方案', '')))
+            self.model.setItem(i, 4, QStandardItem(entry.get('故障等级', '')))
+            self.model.setItem(i, 5, QStandardItem(entry.get('发生频率', '')))
+        self.dispTableView.setModel(self.model)
+
+        self.search_results_exact = []
 
     def save_userdata_pushButtonClicked(self):
         try:

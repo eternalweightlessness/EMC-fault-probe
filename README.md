@@ -233,7 +233,7 @@
 1. 将提取的结构化数据存入数据库（如 MySQL、MongoDB，或者直接用JSON格式存储）；
 2. 建立“故障-原因-解决方案”之间的关联关系。
 
-我们认为JSON格式本身的结构化程度已经足够满足项目需求，每个词条都包含了故障现象-故障原因-解决方案且词条内部一一对应，因此我们直接将第3节中得到的数据存储为JSON格式，不再做其他的数据格式转换。存储的JSON数据文件内容如图3所示。
+我们认为JSON格式本身的结构化程度已经足够满足项目需求，每个词条都包含了故障现象-故障原因-解决方案且词条内部一一对应，因此我们直接将第3节中得到的数据存储为JSON格式，不再做其他的数据格式转换。存储的JSON数据文件内容如图3所示，包含200个左右的故障词条。
 
 <img src="./README.assets/image-20251230131410389.png" alt="image-20251230131410389" style="zoom: 20%;" />
 
@@ -394,7 +394,6 @@ if __name__ == '__main__':
        """执行精确匹配搜索"""
        self.search_results_exact = []
        seen = set()
-   
        for search_string in keywords:
            for item in self.readJsonData:
                if self.target_field:
@@ -402,11 +401,9 @@ if __name__ == '__main__':
                else:
                    for value in item.values():
                        ...
-   
        # 更新UI显示结果
        user_input = str(self.userInputTextEdit.toPlainText())
        self.infoLabel.setText(f"{user_input}——找到 {len(self.search_results_exact)} 条匹配结果")
-   
        for i, entry in enumerate(self.search_results_exact):
            self.model.setItem(i, 0, QStandardItem(entry.get('故障对象', '')))
            self.model.setItem(i, 1, QStandardItem(entry.get('故障现象', '')))
@@ -425,17 +422,15 @@ if __name__ == '__main__':
        # 规定水平表头标签
        tableTitle = ['故障对象', '故障现象', '故障原因', '解决方案', '故障等级', '发生频率']
        self.model = QStandardItemModel(1, len(tableTitle))
-   
        # 设置水平表头标签
        self.model.setHorizontalHeaderLabels(tableTitle)
-   
        # 设置表格基础字体及表头字体
        base_font = QFont("HarmonyOS Sans SC Medium", 10)
        self.dispTableView.setFont(base_font)
        header_font = QFont("HarmonyOS Sans SC Medium", 12, QFont.Bold)
        self.dispTableView.horizontalHeader().setFont(header_font)
    ```
-
+   
 2. 在搜索完成后，将结果数据填充到表格模型中（在 `do_exact_search`方法中实现）：
 
    ```python
@@ -536,8 +531,6 @@ ollama clean 清理缓存
 
 /bye 或者ctrl+d 退出交互模式
 ```
-
-Ollama教程链接：
 
 初始安装后，对模型进行问候，回复效果如图5所示。
 
@@ -728,9 +721,10 @@ except Exception as e:
 通过上述步骤，我们就实现了本地LLM的嵌入与用户输入的模糊匹配搜索。程序启动界面与最终搜索结果界面如图7所示。
 
 <center class="half">    
-    <img src="./README.assets/image-20251230143114862.png" width="300"/>    
-    <img src="./README.assets/image-20251230143256807.png" width="300"/> 
+    <img src="./README.assets/image-20251230143114862.png" width="250"/>    
+    <img src="./README.assets/image-20251230143256807.png" width="250"/> 
 </center>
+
 
 <center>图7 嵌入本地LLM后的电磁兼容故障库程序</center>
 

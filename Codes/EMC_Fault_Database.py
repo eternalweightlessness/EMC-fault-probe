@@ -245,4 +245,4 @@ class Ui_MainWindow(object):
         self.sendPushButton.setText(_translate("MainWindow", "发送"))
         self.saveDataPushButton.setText(_translate("MainWindow", "保存数据"))
         self.exitPushButton.setText(_translate("MainWindow", "退出程序"))
-        self.label.setText(_translate("MainWindow", "第20组 朱宛瑜 皇甫依扬 刘子晗"))
+        self.label.setText(_translate("MainWindow", "第20组 朱宛瑜 皇甫依扬 甄一帆 刘子晗"))

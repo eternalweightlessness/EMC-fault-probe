@@ -2,7 +2,7 @@
 
 <h1 align = "center">电磁兼容故障库（中文资料）</h1>
 <h3 align="right">——项目过程与细节记录</h3>
-<p align="right">第20组-大作业<br>小组成员：朱宛瑜 皇甫依扬 刘子晗<br>Date: From 2025.11.15 to 2025.12.30</p>
+<p align="right">第20组-大作业<br>小组成员：朱宛瑜 皇甫依扬 甄一帆 刘子晗<br>Date: From 2025.11.15 to 2025.12.30</p>
 
 <center>用于EMC小组大作业版本管理</center>
 
@@ -318,7 +318,9 @@ if __name__ == '__main__':
 
 点击运行，得到UI界面如图4所示。
 
-<img src="./README.assets/image-20251230133502669.png" alt="image-20251230133502669" style="zoom:25%;" />
+<div align="center">
+  <img src="./README.assets/main.png" alt="main" style="zoom:50%;" />
+</div>
 
 <center>图4 设计并运行出的UI界面</center>
 
@@ -750,8 +752,8 @@ except Exception as e:
 通过上述步骤，我们就实现了本地LLM的嵌入与用户输入的模糊匹配搜索。程序启动界面与最终搜索结果界面如图7所示。
 
 <center class="half">    
-    <img src="./README.assets/image-20251230143114862.png" width="250"/>    
-    <img src="./README.assets/image-20251230143256807.png" width="250"/> 
+    <img src="./README.assets/llm1.png" width="250"/>
+    <img src="./README.assets/llm2.png" width="250"/>
 </center>
 
 

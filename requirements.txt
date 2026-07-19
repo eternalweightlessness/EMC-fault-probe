@@ -1,0 +1,4 @@
+PyQt5>=5.15,<6
+pandas>=2.0
+ollama>=0.4
+openpyxl>=3.1

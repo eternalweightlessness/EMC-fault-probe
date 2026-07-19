@@ -5,7 +5,12 @@ a = Analysis(
     ['EMC_Fault_Database_Test.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('data_1.json', '.'),
+        ('data_2.json', '.'),
+        ('BUAA-白底蓝字.png', '.'),
+        ('BUAA_logo_2048px.png', '.'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -1,30 +1,80 @@
 import os
 import sys
 import json
-import re
 import traceback
-import pandas as pd
+from pathlib import Path
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 import EMC_Fault_Database
 import subprocess
-import time
 
-from ollama import chat
+try:
+    from ollama import chat
+except ImportError:
+    chat = None
 
-from PyQt5.QtGui import QIcon, QStandardItemModel, QStandardItem, QFont
+from PyQt5.QtGui import QIcon, QStandardItemModel, QStandardItem, QFont, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QMessageBox, QFileDialog
 from PyQt5.QtCore import pyqtSignal, QThread
+
+
+APP_DIR = Path(__file__).resolve().parent
+DEFAULT_DATA_FILES = ("data_1.json", "data_2.json")
+DEFAULT_LLM_MODEL = "deepseek-r1:8b"
+
+
+def normalize_keywords(original_keyword, generated_keywords):
+    """始终保留用户原始输入，并移除空白和重复关键词。"""
+    keywords = []
+    seen = set()
+    for keyword in [original_keyword, *generated_keywords]:
+        if not isinstance(keyword, str):
+            continue
+        normalized = keyword.strip()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            keywords.append(normalized)
+    return keywords
+
+
+def extract_keywords_from_llm(content, original_keyword):
+    """从 LLM 输出中取得最后一个有效的字符串 JSON 数组。
+
+    DeepSeek-R1 可能先输出思考过程，其中也可能包含方括号；选择最后一个
+    有效数组，且无论解析是否成功都保留原始查询，避免模糊搜索破坏精确搜索。
+    """
+    decoder = json.JSONDecoder()
+    generated_keywords = []
+
+    for index, character in enumerate(content):
+        if character != "[":
+            continue
+        try:
+            candidate, _ = decoder.raw_decode(content[index:])
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, list) and all(isinstance(item, str) for item in candidate):
+            generated_keywords = candidate
+
+    return normalize_keywords(original_keyword, generated_keywords)
 
 
 class LLMWorker(QThread):
     # 定义信号，用于将LLM生成的结果发送回主线程
     keywords_ready = pyqtSignal(list)
 
-    def __init__(self, user_keyword):
+    def __init__(self, user_keyword, model_name):
         super().__init__()
         self.user_keyword = user_keyword
+        self.model_name = model_name
 
     def run(self):
         try:
+            if chat is None:
+                raise RuntimeError("未安装 ollama Python 包")
             prompt = f"""
                 请根据用户输入的电磁兼容故障关键词，生成用于模糊搜索的关键词。
                 只返回 JSON 数组，不要解释。
@@ -35,30 +85,28 @@ class LLMWorker(QThread):
                 """
 
             resp = chat(
-                model="deepseek-r1:8b",
+                model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 stream=False
             )
 
             content = resp["message"]["content"]
-            match = re.search(r"\[[\s\S]*?\]", content)
-            if match:
-                keywords = json.loads(match.group())
-            else:
-                keywords = [self.user_keyword]
+            keywords = extract_keywords_from_llm(content, self.user_keyword)
 
         except Exception as e:
             print("LLM 关键词生成失败:", e)
-            keywords = [self.user_keyword]
+            keywords = normalize_keywords(self.user_keyword, [])
 
         # 通过信号发送结果
         self.keywords_ready.emit(keywords)
 
 
 class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, data_dir=None):
         QMainWindow.__init__(self, parent)
         self.setupUi(self)
+        self.app_dir = Path(data_dir) if data_dir else APP_DIR
+        self.BUAALabel.setPixmap(QPixmap(str(self.app_dir / "BUAA-白底蓝字.png")))
         # 初始化显示表格
         self.resetdispTableView()
 
@@ -74,7 +122,8 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         self.model = None
 
         # 字符串匹配
-        self.json_dir = "."  # 读取当前目录下的所有json文件
+        self.json_dir = self.app_dir
+        self.data_files = DEFAULT_DATA_FILES
         self.readJsonData = []  # 读取json文件得到的数据
         self.searchTextfromUserInput = None  # 来自用户输入的要搜索的字段
         self.target_field = None  # 目标字段
@@ -82,6 +131,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         self.search_results_exact = []  # 精确字段匹配的结果
 
         # LLM线程相关变量
+        self.llm_model = os.getenv("EMC_OLLAMA_MODEL", DEFAULT_LLM_MODEL)
         self.ollama_available = self.check_ollama_available()
         self.llm_worker = None
 
@@ -90,14 +140,14 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
 
         # 显示Ollama状态
         if self.ollama_available:
-            self.infoLabel.setText("系统已连接至ollama，支持模糊搜索")
+            self.infoLabel.setText(f"系统已连接至 Ollama（{self.llm_model}），支持模糊搜索")
         else:
             self.infoLabel.setText("未检测到本地ollama服务，使用精确匹配搜索")
 
     def resetdispTableView(self):
         # 规定水平表头标签
         tableTitle = ['故障对象', '故障现象', '故障原因', '解决方案', '故障等级', '发生频率']
-        self.model = QStandardItemModel(1, len(tableTitle))
+        self.model = QStandardItemModel(0, len(tableTitle))
 
         # 设置水平表头标签
         self.model.setHorizontalHeaderLabels(tableTitle)
@@ -119,23 +169,32 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
 
 
     def load_json_file(self):
-        try:
-            json_dir = self.json_dir
+        """加载发布时指定的数据文件，并以完整词条内容去重。"""
+        self.readJsonData = []
+        seen = set()
+        errors = []
 
-            # 遍历指定目录下的所有文件
-            for filename in os.listdir(json_dir):
-                if filename.endswith('.json'):
-                    file_path = os.path.join(json_dir, filename)
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                        # 假设每个json文件都是列表或字典，统一合并到readJsonData列表中
-                        if isinstance(data, list):
-                            self.readJsonData.extend(data)
-                        elif isinstance(data, dict):
-                            self.readJsonData.append(data)
-        except Exception as e:
-            error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
-            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
+        for filename in self.data_files:
+            file_path = self.json_dir / filename
+            try:
+                with file_path.open('r', encoding='utf-8') as file:
+                    data = json.load(file)
+            except (OSError, json.JSONDecodeError) as error:
+                errors.append(f"{filename}: {error}")
+                continue
+
+            entries = data if isinstance(data, list) else [data] if isinstance(data, dict) else []
+            for entry in entries:
+                if not isinstance(entry, dict):
+                    continue
+                entry_id = json.dumps(entry, ensure_ascii=False, sort_keys=True)
+                if entry_id not in seen:
+                    seen.add(entry_id)
+                    self.readJsonData.append(entry)
+
+        if errors:
+            QMessageBox.warning(self, '数据加载警告', "以下数据文件未能加载：\n" + "\n".join(errors))
+        return len(self.readJsonData)
 
     def sendPushButtonClicked(self):
         try:
@@ -153,7 +212,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
                 if self.ollama_available:
                     self.infoLabel.setText("正在生成搜索关键词...")
                     # 创建并启动LLM工作线程
-                    self.llm_worker = LLMWorker(user_input)
+                    self.llm_worker = LLMWorker(user_input, self.llm_model)
                     self.llm_worker.keywords_ready.connect(self.handle_llm_keywords)
                     self.llm_worker.finished.connect(self.llm_thread_finished)
                     self.llm_worker.start()
@@ -164,12 +223,6 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
                     self.sendPushButton.setEnabled(True)
             else:
                 self.infoLabel.setText("请您输入文本！")
-        except FileNotFoundError:
-            error_details = f"错误：文件 '{self.json_file_path}' 未找到"
-            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
-        except json.JSONDecodeError:
-            error_details = f"错误：文件 '{self.json_file_path}' 不是有效的JSON格式"
-            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
         except Exception as e:
             error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
             QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
@@ -215,6 +268,9 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
 
     def check_ollama_available(self):
         """检查本地是否有ollama部署的大模型服务"""
+        if chat is None:
+            print("未安装 ollama Python 包，使用精确匹配搜索")
+            return False
         try:
             # 尝试调用ollama list命令检查服务状态
             result = subprocess.run(['ollama', 'list'],
@@ -223,12 +279,15 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
                                     timeout=5)
 
             if result.returncode == 0:
-                # 检查是否有可用的模型
-                output = result.stdout.lower()
-                if "deepseek-r1" in output or "qwen" in output or "llama" in output:
+                model_names = {
+                    line.split()[0]
+                    for line in result.stdout.splitlines()[1:]
+                    if line.split()
+                }
+                if self.llm_model in model_names:
                     return True
                 else:
-                    print("警告：ollama服务运行中，但未找到支持的模型")
+                    print(f"警告：Ollama 服务运行中，但未找到模型 {self.llm_model}")
                     return False
             else:
                 print(f"ollama服务不可用: {result.stderr}")
@@ -291,7 +350,12 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
                 "Excel Files (*.xlsx);;All Files (*)"
                 # QFileDialog.ShowDirsOnly,
             )
-            # print(self.save_data_path) # 调试用
+            if not self.save_data_path[0]:
+                self.infoLabel.setText("已取消保存")
+                return
+            if pd is None:
+                QMessageBox.warning(self, '缺少依赖', '导出 Excel 需要安装 pandas 和 openpyxl。')
+                return
 
             to_save_model = self.dispTableView.model()
             # 获取行数和列数
@@ -330,11 +394,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
             # print(error_details) # 调试用
 
     def exitPushButtonClicked(self):
-        try:
-            sys.exit(app.exec_())
-        except Exception as e:
-            error_details = f"错误类型: {type(e).__name__}\n\n详细错误:\n{traceback.format_exc()}"
-            QMessageBox.critical(self, '系统错误', f'发生错误:\n{error_details}')
+        self.close()
 
 
 
@@ -342,7 +402,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     main = MainWindows()
     main.setWindowTitle('电磁兼容故障库')
-    main.setWindowIcon(QIcon("BUAA_logo_2048px.png"))
+    main.setWindowIcon(QIcon(str(APP_DIR / "BUAA_logo_2048px.png")))
     main.show()
 
     main.load_json_file()

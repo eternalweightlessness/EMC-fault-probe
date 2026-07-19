@@ -8,6 +8,35 @@
 
 <div style="page-break-after: always;"></div>
 
+## 运行与开发
+
+桌面程序的源码入口为 `Codes/EMC_Fault_Database_Test.py`。建议使用 Python 3.10 或更高版本，并在仓库根目录安装依赖：
+
+```powershell
+python -m pip install -r requirements.txt
+cd Codes
+python EMC_Fault_Database_Test.py
+```
+
+程序只加载发布数据文件 `data_1.json` 和 `data_2.json`，并在加载时按完整词条去重。`12.29.json` 是 `data_2.json` 的历史重复副本，保留在仓库中用于追溯，不会参与运行时检索。
+
+本地语义扩展是可选功能：安装并启动 Ollama 后，下载默认模型 `deepseek-r1:8b`；也可通过环境变量 `EMC_OLLAMA_MODEL` 指定已安装的其他模型。没有本地模型时，程序仍会进行普通关键词检索。
+
+运行测试：
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m unittest discover -s tests
+```
+
+重新打包 Windows 可执行文件时，请使用开发依赖，并将输出放在未跟踪的 `artifacts/` 目录，避免覆盖仓库中的历史发布文件：
+
+```powershell
+python -m pip install -r requirements-dev.txt
+cd Codes
+pyinstaller --clean --noconfirm --distpath ..\artifacts\dist --workpath ..\artifacts\build EMC_Fault_Database_Test.spec
+```
+
 # 1.历史故障数据收集
 
 在这一部分，我们需要从不同的来源收集电磁兼容故障及解决方案，以PDF文件的格式进行整理和存储。资料来源分为期刊论文、行业报告等文献、网页资料链接、在线LLM（Deepseek & ChatGPT etc.）三个部分。其示例如1.1、1.2、1.3三个小节所示。

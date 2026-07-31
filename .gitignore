@@ -5,3 +5,6 @@ __pycache__/
 artifacts/
 .idea/
 .reasonix/
+.codegraph/
+.vscode/
+reasonix.toml

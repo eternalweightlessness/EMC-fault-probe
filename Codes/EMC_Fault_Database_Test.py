@@ -16,9 +16,9 @@ try:
 except ImportError:
     chat = None
 
-from PyQt5.QtGui import QIcon, QStandardItemModel, QStandardItem, QFont, QPixmap
-from PyQt5.QtWidgets import QMainWindow, QApplication, QHeaderView, QMessageBox, QFileDialog
-from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt6.QtGui import QIcon, QStandardItemModel, QStandardItem, QFont, QPixmap
+from PyQt6.QtWidgets import QMainWindow, QApplication, QHeaderView, QMessageBox, QFileDialog
+from PyQt6.QtCore import pyqtSignal, QThread
 
 
 APP_DIR = Path(__file__).resolve().parent
@@ -155,7 +155,7 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
         # 设置表格基础字体及表头字体
         base_font = QFont("HarmonyOS Sans SC Medium", 10)
         self.dispTableView.setFont(base_font)
-        header_font = QFont("HarmonyOS Sans SC Medium", 12, QFont.Bold)
+        header_font = QFont("HarmonyOS Sans SC Medium", 12, QFont.Weight.Bold)
         self.dispTableView.horizontalHeader().setFont(header_font)
 
         # 将模型设置给dispTableView控件
@@ -163,9 +163,9 @@ class MainWindows(QMainWindow, EMC_Fault_Database.Ui_MainWindow):
 
         # 均匀拉伸所有的列和行
         header = self.dispTableView.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         vheader = self.dispTableView.verticalHeader()
-        vheader.setSectionResizeMode(QHeaderView.Stretch)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
 
     def load_json_file(self):
@@ -407,4 +407,4 @@ if __name__ == '__main__':
 
     main.load_json_file()
 
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

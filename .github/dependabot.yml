@@ -1,0 +1,14 @@
+# 自动跟踪依赖更新：每周检查 pip 依赖与 GitHub Actions 版本
+# 发现更新后自动开 PR，由 CI 验证后合并
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

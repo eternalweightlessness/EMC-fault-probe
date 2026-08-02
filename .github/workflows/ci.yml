@@ -1,0 +1,82 @@
+name: CI
+
+on: # 触发条件（GitHub Actions 标准写法，规避 YAML 1.1 布尔误报）
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # 支持手动触发
+
+concurrency:
+  # 同一分支的新提交到来时，取消仍在运行的旧 CI，节省 runner 时间
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # 最小权限原则
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install ruff
+        run: pip install ruff
+      - name: Ruff check
+        run: ruff check Codes/
+
+  test:
+    name: Test (py${{ matrix.python-version }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false # 一个矩阵组合失败不取消其余组合
+      matrix:
+        os: [ubuntu-latest, windows-latest] # 覆盖 CI 与用户本地 Windows 环境
+        python-version: ["3.11", "3.12"]
+    env:
+      QT_QPA_PLATFORM: offscreen # PyQt6 GUI 无显示环境
+    defaults:
+      run:
+        working-directory: Codes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install system dependencies (Linux, PyQt6)
+        # Qt 6 在 headless Linux 下需要 EGL/GL 等系统库，否则
+        # import PyQt6 时报 ImportError: libEGL.so.1 / libGL.so.1
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxcb-cursor0 libxkbcommon-x11-0
+      - name: Install dependencies
+        run: |
+          pip install -r ../requirements.txt
+          pip install pytest pytest-cov
+      - name: Syntax check all scripts
+        # Embedding_Test.py / LLMTest.py 依赖本机 Ollama 服务，CI 不可用，
+        # 故仅编译校验语法，不执行。
+        run: python -m compileall -q .
+      - name: Unit tests with coverage
+        # 注意：Windows runner 默认 shell 是 PowerShell，不支持 bash 的
+        # 反斜杠续行，命令必须写为单行
+        run: python -m pytest tests/ -v --cov=. --cov-report=term-missing --cov-report=xml:coverage.xml --junitxml=junit.xml
+      - name: GUI module import smoke test
+        run: python -c "import EMC_Fault_Database; print('GUI module import OK')"
+      - name: Upload test reports
+        if: always() # 测试失败也保留报告供排查
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            Codes/junit.xml
+            Codes/coverage.xml
+          if-no-files-found: ignore

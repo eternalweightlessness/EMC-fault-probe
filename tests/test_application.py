@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CODE_DIR = PROJECT_ROOT / "Codes"
 sys.path.insert(0, str(CODE_DIR))
 
-from PyQt5.QtWidgets import QApplication, QFileDialog  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QFileDialog  # noqa: E402
 import EMC_Fault_Database_Test as application  # noqa: E402
 
 

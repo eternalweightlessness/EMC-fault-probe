@@ -89,3 +89,9 @@ class ChatService:
             return False
         state.cancelled = True
         return True
+
+    def is_active(self, session_id: str) -> bool:
+        """供 API 在发送 SSE 响应头之前拒绝同一会话的重复请求。"""
+
+        lock = self._locks.get(session_id)
+        return lock is not None and lock.locked()

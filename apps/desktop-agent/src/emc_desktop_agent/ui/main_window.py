@@ -191,6 +191,19 @@ class MainWindow(QMainWindow):
         self._run_request(self._client.health, self._apply_health, self._show_offline)
         self._run_request(self._client.list_sessions, self.set_sessions, lambda _error: None)
 
+    def reconnect_backend(self) -> None:
+        """重新探测嵌入式或独立后端；供打包启动和用户后续重试复用。"""
+
+        self.status_pill.setStyleSheet("")
+        self._load_backend_state()
+
+    def show_backend_error(self, error: str) -> None:
+        """显示嵌入式后端错误，同时把完整文本保留在 tooltip 中。"""
+
+        self.status_text.setText("后端启动失败")
+        self.status_pill.setStyleSheet("border-color: #65403d; background: #2c201f;")
+        self.status_pill.setToolTip(error)
+
     def _run_request(
         self,
         operation: Callable[[], Any],

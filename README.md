@@ -27,6 +27,45 @@
 <h3 align="center">对话式 EMC 诊断 · 本地 RAG · 工具调用</h3>
 <p align="center">向 Agent 描述电磁兼容问题；模型按需检索本地案例资料，并以流式对话给出分析、排查步骤和整改建议。</p>
 
+## 运行正式 Agent
+
+要求 Python 3.11+、本地 [Ollama](https://ollama.com/) 以及
+`qwen3.5:9b-q4_K_M`、`nomic-embed-text` 模型。首次运行先安装各工作区包并构建
+正式向量索引：
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m pip install -e packages/emc-core-py -e packages/emc-runtime-local-py `
+  -e integrations -e apps/backend -e apps/desktop-agent
+python scripts/data/build_vector_index.py
+```
+
+在两个 PyCharm Run Configuration 或终端中分别启动：
+
+```powershell
+# 后端：支持保存后自动重载
+python -m emc_backend.main --reload
+
+# 桌面端：会话、RAG 工具卡、思考折叠与流式回答
+python -m emc_desktop_agent.main
+```
+
+后端入口为 `emc_backend.main`，桌面入口为 `emc_desktop_agent.main`。更详细的
+PyCharm 配置和热更新方法见 `apps/backend/README.md` 与
+`apps/desktop-agent/README.md`。
+
+Windows onedir 应用可用以下命令构建；输出 exe 位于
+`artifacts/dist/EMCProbeAgent/EMCProbeAgent.exe`：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build/build-desktop-agent.ps1
+```
+
+## 历史 PyQt6 实验
+
+以下截图、安装命令和功能说明记录早期数据库查询实验，仅用于项目演进追溯，不是
+新 Agent 的界面或验收范围。
+
 <p align="center">
   <img src="./README.assets/main.png" alt="故障库查询程序主界面" width="720"/>
 </p>
@@ -40,7 +79,7 @@
 >
 > 下方截图和旧运行命令记录的是历史 PyQt6 故障库实验，用于追溯项目演进；新桌面端不会复刻其表格和 Excel 导出功能。正式 Agent 入口将在对应迁移阶段更新。
 
-## Install
+## 历史实验运行方法
 
 要求 Python 3.10+，支持 Windows / Linux / macOS。
 

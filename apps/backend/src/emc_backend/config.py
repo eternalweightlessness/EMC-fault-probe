@@ -75,27 +75,46 @@ class Settings:
     """
 
     project_root: Path
+    runtime_root: Path | None = None
     environment: str = "development"
     host: str = "127.0.0.1"
     port: int = 8000
     ollama_host: str = "http://127.0.0.1:11434"
     chat_model: str = "qwen3.5:9b-q4_K_M"
     embedding_model: str = "nomic-embed-text"
+    ollama_think: bool = True
     auto_start_ollama: bool = False
     max_agent_steps: int = 5
     chroma_collection: str = "emc_faults"
 
     @property
     def chroma_path(self) -> Path:
-        """返回当前实验向量库路径，后续重建索引时只需修改这一处。"""
+        """返回由正式数据脚本构建的本地向量库路径。"""
 
-        return self.project_root / "experiments" / "rag" / "emc_vector_db"
+        return (self.runtime_root or self.project_root / "data" / "runtime") / "vector_store"
+
+    @property
+    def session_path(self) -> Path:
+        """返回 JSONL 会话目录；开发版和打包版使用同一相对位置。"""
+
+        return (self.runtime_root or self.project_root / "data" / "runtime") / "sessions"
+
+    @property
+    def system_prompt_path(self) -> Path:
+        return (
+            self.project_root
+            / "packages"
+            / "emc-runtime-local-py"
+            / "prompts"
+            / "system.md"
+        )
 
     @property
     def ollama_log_path(self) -> Path:
         """返回由后端启动 Ollama 时使用的日志路径。"""
 
-        return self.project_root / "data" / "runtime" / "logs" / "ollama_serve.log"
+        runtime_directory = self.runtime_root or self.project_root / "data" / "runtime"
+        return runtime_directory / "logs" / "ollama_serve.log"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -103,6 +122,12 @@ class Settings:
 
         port = _env_int("EMC_BACKEND_PORT", 8000)
         max_steps = _env_int("EMC_MAX_AGENT_STEPS", 5)
+        runtime_root_value = os.getenv("EMC_RUNTIME_ROOT")
+        runtime_root = (
+            Path(runtime_root_value).expanduser().resolve()
+            if runtime_root_value
+            else None
+        )
         if not 1 <= port <= 65535:
             raise ValueError("EMC_BACKEND_PORT 必须在 1 到 65535 之间")
         if max_steps < 1:
@@ -110,6 +135,7 @@ class Settings:
 
         return cls(
             project_root=discover_project_root(),
+            runtime_root=runtime_root,
             environment=os.getenv("EMC_ENVIRONMENT", "development"),
             host=os.getenv("EMC_BACKEND_HOST", "127.0.0.1"),
             port=port,
@@ -122,6 +148,7 @@ class Settings:
                 "EMC_EMBEDDING_MODEL",
                 "nomic-embed-text",
             ),
+            ollama_think=_env_bool("EMC_OLLAMA_THINK", True),
             auto_start_ollama=_env_bool("EMC_AUTO_START_OLLAMA", False),
             max_agent_steps=max_steps,
             chroma_collection=os.getenv("EMC_CHROMA_COLLECTION", "emc_faults"),

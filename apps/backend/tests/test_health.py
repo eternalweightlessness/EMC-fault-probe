@@ -103,3 +103,4 @@ def test_openapi_metadata_and_routes_are_available() -> None:
     assert document["info"]["title"] == "EMC Fault Probe Agent API"
     assert "/api/v1/health" in document["paths"]
     assert "/api/v1/models" in document["paths"]
+    assert "/api/v1/sessions" in document["paths"]

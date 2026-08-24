@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 from subprocess import Popen
 from typing import Any
 
+from emc_core.application.chat_service import ChatService
+from emc_core.application.session_service import SessionService
+from emc_core.persistence.jsonl_store import JsonlSessionStore
 from emc_core.ports.agent_runtime import AgentRuntime
 from emc_core.tools.registry import ToolRegistry
 from emc_core.tools.search_cases import SEARCH_CASES_SPEC, SearchCasesTool
@@ -36,6 +39,8 @@ class AppContainer:
     settings: Settings
     runtime: AgentRuntime
     ollama_client: AsyncClient
+    session_service: SessionService
+    chat_service: ChatService
     _ollama_process: Popen[Any] | None = field(default=None, init=False, repr=False)
     _started: bool = field(default=False, init=False, repr=False)
     _closed: bool = field(default=False, init=False, repr=False)
@@ -112,6 +117,10 @@ def build_container(settings: Settings) -> AppContainer:
     ollama_client = AsyncClient(host=settings.ollama_host)
     llm = OllamaLLM(
         model=settings.chat_model,
+        think=settings.ollama_think,
+        # 固定温度让相同故障更稳定地选择相同工具和检索关键词；这是原生
+        # 工具调用实验已经验证过的设置，仍可在未来扩展为用户配置。
+        options={"temperature": 0},
         client=ollama_client,
     )
     embedder = OllamaEmbedder(
@@ -136,9 +145,19 @@ def build_container(settings: Settings) -> AppContainer:
         registry=registry,
         max_steps=settings.max_agent_steps,
     )
+    session_store = JsonlSessionStore(settings.session_path)
+    session_service = SessionService(session_store)
+    system_prompt = settings.system_prompt_path.read_text(encoding="utf-8")
+    chat_service = ChatService(
+        store=session_store,
+        runtime=runtime,
+        system_prompt=system_prompt,
+    )
 
     return AppContainer(
         settings=settings,
         runtime=runtime,
         ollama_client=ollama_client,
+        session_service=session_service,
+        chat_service=chat_service,
     )

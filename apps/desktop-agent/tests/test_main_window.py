@@ -12,6 +12,10 @@ from emc_desktop_agent.ui.main_window import MainWindow
 from emc_desktop_agent.ui.widgets import ToolCallCard
 from PyQt6.QtWidgets import QApplication, QLabel, QPushButton, QTableView, QTextBrowser
 
+# 保留 Python 侧强引用。若每个测试只用局部变量持有 QApplication，前一个测试
+# 结束时包装对象可能先于 Qt 子对象析构，Windows 上偶发 access violation。
+_APP = QApplication.instance() or QApplication([])
+
 
 class FakeAgentApi:
     def health(self) -> dict[str, object]:
@@ -68,7 +72,7 @@ class FakeAgentApi:
 
 
 def test_preview_renders_conversational_agent_without_legacy_table() -> None:
-    app = QApplication.instance() or QApplication([])
+    app = _APP
     window = MainWindow(client=FakeAgentApi(), auto_connect=False)
 
     window.seed_preview()
@@ -92,7 +96,7 @@ def test_preview_renders_conversational_agent_without_legacy_table() -> None:
 
 
 def test_window_consumes_stream_in_worker_and_renders_tool_trace() -> None:
-    app = QApplication.instance() or QApplication([])
+    app = _APP
     window = MainWindow(client=FakeAgentApi(), auto_connect=False)
     window.show()
 

@@ -3,7 +3,9 @@ from __future__ import annotations
 from emc_core.ports.retriever import RetrievalResult, Retriever
 from emc_core.tools.models import ToolSpec
 
-DEFAULT_TOP_K = 5
+# 三条结果通常足以覆盖“现象—原因—整改”的依据，同时避免把过长工具输出
+# 塞回本地模型上下文。用户需要横向比较时仍可显式请求最多十条。
+DEFAULT_TOP_K = 3
 
 SEARCH_CASES_SPEC = ToolSpec(
     name="search_cases",
@@ -22,7 +24,7 @@ SEARCH_CASES_SPEC = ToolSpec(
             },
             "top_k": {
                 "type": "integer",
-                "description": "返回最相关的故障词条数量。",
+                "description": "返回最相关的故障词条数量；一般使用默认的 3 条。",
                 "minimum": 1,
                 "maximum": 10,
                 "default": DEFAULT_TOP_K,

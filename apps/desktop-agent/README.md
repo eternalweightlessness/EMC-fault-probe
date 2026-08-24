@@ -60,3 +60,14 @@ python -m emc_desktop_agent.main --screenshot artifacts/ui/desktop-agent.png
 该命令使用固定示例会话渲染真实窗口并保存 PNG，适合在修改样式后检查中文字体、
 间距、工具卡和不同消息层级。Windows 上若 Conda Qt 未发现系统字体，入口会显式
 注册微软雅黑，避免中文显示成方框。
+
+## Windows exe
+
+正式发布使用 onedir 模式，入口仍是同一个 PyQt6 应用。exe 会在后台线程启动
+嵌入式 FastAPI/Uvicorn，但 widget 继续通过 HTTP/SSE client 访问它，架构边界
+与开发模式一致。首次启动会把只读向量索引复制到
+`%LOCALAPPDATA%\EMC Fault Probe\runtime`，会话也保存在该可写目录。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build/build-desktop-agent.ps1
+```

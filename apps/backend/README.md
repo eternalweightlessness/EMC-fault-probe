@@ -34,6 +34,12 @@ Run `emc_backend.main`, then open:
 - API docs: <http://127.0.0.1:8000/docs>
 - Health: <http://127.0.0.1:8000/api/v1/health>
 - Models: <http://127.0.0.1:8000/api/v1/models>
+- Sessions: <http://127.0.0.1:8000/api/v1/sessions>
+
+The desktop uses the session endpoints to create and restore chats. Posting a
+message to `/api/v1/sessions/{session_id}/messages` returns Server-Sent Events
+for thinking deltas, RAG tool calls and answer deltas; cancellation is available
+at `/api/v1/sessions/{session_id}/cancel`.
 
 ## PowerShell development entry
 
@@ -43,4 +49,6 @@ Run `emc_backend.main`, then open:
 
 The script enables Uvicorn reload mode. Importing `emc_backend.main` does not
 start Ollama; set `EMC_AUTO_START_OLLAMA=true` if the backend should own a local
-`ollama serve` process.
+`ollama serve` process. Set `EMC_OLLAMA_THINK=false` when a smaller model should
+skip visible reasoning and return the final answer faster. All supported values
+are listed in the repository `.env.example`.

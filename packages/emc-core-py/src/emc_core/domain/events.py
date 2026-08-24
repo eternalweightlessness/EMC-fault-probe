@@ -9,6 +9,8 @@ class AgentEventType(StrEnum):
     """Agent Runtime 对外产生的事件类型。"""
 
     TURN_STARTED = "turn.started"
+    ASSISTANT_THINKING_DELTA = "assistant.thinking.delta"
+    ASSISTANT_CONTENT_DELTA = "assistant.content.delta"
     TOOL_REQUESTED = "tool.requested"
     TOOL_COMPLETED = "tool.completed"
     ASSISTANT_COMPLETED = "assistant.completed"

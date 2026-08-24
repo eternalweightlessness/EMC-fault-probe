@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 
 from emc_core.agent.state import AgentState
 from emc_core.domain.events import AgentEventType
+from emc_core.llm.streaming import ModelStreamEvent, ModelStreamEventType
 from emc_core.ports.llm import ChatMessage, LLMOutput
 from emc_core.tools.models import ToolCall, ToolResult, ToolSpec
 from emc_core.tools.registry import ToolRegistry
@@ -35,6 +36,35 @@ class FakeLLM:
             raise AssertionError("FakeLLM 没有预设更多响应")
 
         return self.responses.pop(0)
+
+
+class FakeStreamingLLM:
+    """实现 StreamingLLM Protocol 的增量测试替身。"""
+
+    async def complete(
+        self,
+        messages: Sequence[ChatMessage],
+        tools: Sequence[ToolSpec],
+    ) -> LLMOutput:
+        raise AssertionError("流式 runtime 不应调用 complete()")
+
+    async def stream(
+        self,
+        messages: Sequence[ChatMessage],
+        tools: Sequence[ToolSpec],
+    ) -> AsyncIterator[ModelStreamEvent]:
+        yield ModelStreamEvent(
+            type=ModelStreamEventType.THINKING_DELTA,
+            text="先检索。",
+        )
+        yield ModelStreamEvent(
+            type=ModelStreamEventType.CONTENT_DELTA,
+            text="建议检查",
+        )
+        yield ModelStreamEvent(
+            type=ModelStreamEventType.CONTENT_DELTA,
+            text="屏蔽搭接。",
+        )
 
 
 async def collect_events(event_stream):
@@ -77,6 +107,71 @@ def test_runtime_can_return_direct_answer() -> None:
     }
 
     assert len(llm.calls) == 1
+
+
+def test_runtime_forwards_streaming_thinking_and_content_deltas() -> None:
+    state = AgentState(
+        session_id="session-stream",
+        messages=[{"role": "user", "content": "如何整改？"}],
+    )
+
+    events = asyncio.run(
+        collect_events(
+            run_loop(
+                state=state,
+                llm=FakeStreamingLLM(),
+                tools=[],
+                execute_tool=None,
+            )
+        )
+    )
+
+    assert [event.type for event in events] == [
+        AgentEventType.TURN_STARTED,
+        AgentEventType.ASSISTANT_THINKING_DELTA,
+        AgentEventType.ASSISTANT_CONTENT_DELTA,
+        AgentEventType.ASSISTANT_CONTENT_DELTA,
+        AgentEventType.ASSISTANT_COMPLETED,
+        AgentEventType.TURN_COMPLETED,
+    ]
+    assert events[1].data["delta"] == "先检索。"
+    assert state.messages[-1]["content"] == "建议检查屏蔽搭接。"
+
+
+def test_runtime_can_cancel_during_streaming_answer() -> None:
+    async def exercise() -> tuple[list[AgentEventType], AgentState]:
+        state = AgentState(
+            session_id="session-stream-cancel",
+            messages=[{"role": "user", "content": "开始诊断。"}],
+        )
+        stream = run_loop(
+            state=state,
+            llm=FakeStreamingLLM(),
+            tools=[],
+            execute_tool=None,
+        )
+
+        # anext() 每次只推进异步生成器到下一个 yield。这里模拟 UI 在收到
+        # 第一段 thinking 后调用 stop，而不是一次性收完整个事件流。
+        events = [await anext(stream), await anext(stream)]
+        state.cancelled = True
+        events.append(await anext(stream))
+        try:
+            await anext(stream)
+        except StopAsyncIteration:
+            pass
+        else:
+            raise AssertionError("取消后事件流应立即结束")
+        return [event.type for event in events], state
+
+    event_types, state = asyncio.run(exercise())
+
+    assert event_types == [
+        AgentEventType.TURN_STARTED,
+        AgentEventType.ASSISTANT_THINKING_DELTA,
+        AgentEventType.TURN_FAILED,
+    ]
+    assert state.messages[-1]["role"] == "user"
 
 
 def test_runtime_can_execute_one_tool_then_answer() -> None:

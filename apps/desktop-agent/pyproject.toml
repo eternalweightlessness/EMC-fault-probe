@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emc-desktop-agent"
+version = "0.1.0"
+description = "PyQt6 desktop client for the EMC Fault Probe Agent."
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["PyQt6>=6.6,<7"]
+
+[project.scripts]
+emc-desktop-agent = "emc_desktop_agent.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

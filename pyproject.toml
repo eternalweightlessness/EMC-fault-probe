@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+# ``src`` 布局可以避免开发目录意外遮蔽已安装包。测试时把每个正式包的
+# src 目录显式加入导入路径，使命令行与 PyCharm 使用同一套解析规则。
+pythonpath = [
+    ".",
+    "packages/emc-core-py/src",
+    "packages/emc-runtime-local-py/src",
+    "apps/backend/src",
+    "apps/desktop-agent/src",
+]
+testpaths = [
+    "packages/emc-core-py/tests",
+    "packages/emc-runtime-local-py/tests",
+    "integrations/models/ollama/tests",
+    "integrations/vector_stores/chroma/tests",
+    "apps/backend/tests",
+    "apps/desktop-agent/tests",
+]

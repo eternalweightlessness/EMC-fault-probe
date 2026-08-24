@@ -5,7 +5,7 @@
 >
 > **项目愿景**：构建一个基于 **RAG（检索增强生成）与长期记忆系统**的电磁兼容故障库 **AGENT** —— 沿"数据来源 → 知识加工 → 结构化存储 → 功能迭代"主线，将分散、非结构化的 EMC 故障资料沉淀为结构化、可复用的故障知识体系，由 LLM 驱动实现智能查询、故障诊断辅助、知识动态增量构建与更新提示。
 >
-> **当前进度**：故障库基础版已完成 —— 从文献、网页与在线 LLM 三渠道收集数据，经清洗、LLM 结构化提取与合并去重，当前发布数据包含 151 条去重词条；PyQt6 查询程序和 ChromaDB RAG 实验作为实验产物保留。向量库生成脚本位于 `experiments/rag/embedding_test.py`，其输出位于 `experiments/rag/emc_vector_db/`；Web 前端、Python 后端和 Agent Runtime 正在按新架构重构。
+> **当前进度**：故障库基础版已完成 —— 从文献、网页与在线 LLM 三渠道收集数据，经清洗、LLM 结构化提取与合并去重，当前发布数据包含 151 条去重词条；PyQt6 查询程序和早期 ChromaDB RAG 代码作为实验产物保留。正式数据校验与可重复向量索引入口分别为 `scripts/data/validate_dataset.py` 和 `scripts/data/build_vector_index.py`；Web 前端、Python 后端和 Agent Runtime 正在按新架构重构。
 
 <p align="center">
   <strong>简体中文</strong>

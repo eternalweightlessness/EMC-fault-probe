@@ -36,10 +36,15 @@ def main() -> None:
     )
     args = parser.parse_args()
     stats = validate(args.data_dir.resolve())
+
+    # CI 摘要只使用 ASCII 字符。Windows runner 的标准输出可能仍采用
+    # cp1252 等本地代码页；即使数据文件本身是 UTF-8，直接打印中文也会
+    # 在编码阶段触发 UnicodeEncodeError。这里保留相同语义，同时让脚本
+    # 能在 GitHub Actions、传统 PowerShell 和 PyCharm 终端中稳定运行。
     print(
         f"validated {stats['cases']} cases from {stats['files']} files "
         f"({stats['severity_kinds']} severity values, "
-        f"{stats['unknown_values']} blank fields normalized to 未知)"
+        f"{stats['unknown_values']} blank fields normalized to unknown)"
     )
 
 

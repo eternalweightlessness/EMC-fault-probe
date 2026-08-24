@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emc-backend"
+version = "0.1.0"
+description = "Local FastAPI backend for EMC Fault Probe Agent."
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "emc-core>=0.1.0",
+    "emc-runtime-local>=0.1.0",
+    "emc-integrations>=0.1.0",
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.30,<1.0",
+    "ollama>=0.4",
+    "chromadb>=1.5",
+    "numpy>=1.26",
+]
+
+[project.scripts]
+emc-backend = "emc_backend.main:run"
+
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0",
+    "httpx2>=2.0,<3.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

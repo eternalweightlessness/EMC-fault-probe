@@ -6,6 +6,8 @@ from emc_core.domain.events import AgentEvent, AgentEventType
 
 def test_event_types_use_stable_wire_names() -> None:
     assert AgentEventType.TURN_STARTED.value == "turn.started"
+    assert AgentEventType.ASSISTANT_THINKING_DELTA.value == "assistant.thinking.delta"
+    assert AgentEventType.ASSISTANT_CONTENT_DELTA.value == "assistant.content.delta"
     assert AgentEventType.TOOL_REQUESTED.value == "tool.requested"
     assert AgentEventType.TOOL_COMPLETED.value == "tool.completed"
     assert AgentEventType.ASSISTANT_COMPLETED.value == "assistant.completed"

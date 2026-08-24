@@ -15,6 +15,10 @@ DeepSeek Harness；业务代码只依赖项目自己的端口（Protocol），�
 
 `experiments` 只保留研究过程和回归样例，不再作为正式应用入口。
 
+产品主流程是一个轻量 EMC 专业对话 Agent：用户描述问题，模型按需调用
+`search_cases` 检索本地案例知识库，再结合命中资料给出诊断思路和整改方案。
+桌面端展示会话、流式回答、思考状态和工具轨迹，而不是复刻旧数据库查询界面。
+
 ## 2. 运行结构
 
 ```text
@@ -70,5 +74,6 @@ harness 更换而改变。
 - 任意命令执行、任意文件写入等高风险通用 Agent 工具。
 - LangGraph/LangChain/DeepSeek Harness 的正式接入。
 - 自动更新器和 Windows 安装包签名。
+- 旧 PyQt6 程序的结果表格、Excel 导出和数据库管理式页面。
 
 这些能力只有在本地 Ollama 主流程稳定后才进入后续 ADR 和独立 PR。

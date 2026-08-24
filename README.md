@@ -1,11 +1,11 @@
-<h1 align="center">电磁兼容故障库（中文资料）</h1>
+<h1 align="center">EMC Fault Probe Agent</h1>
 
 
 > [!NOTE]
 >
 > **项目愿景**：构建一个基于 **RAG（检索增强生成）与长期记忆系统**的电磁兼容故障库 **AGENT** —— 沿"数据来源 → 知识加工 → 结构化存储 → 功能迭代"主线，将分散、非结构化的 EMC 故障资料沉淀为结构化、可复用的故障知识体系，由 LLM 驱动实现智能查询、故障诊断辅助、知识动态增量构建与更新提示。
 >
-> **当前进度**：故障库基础版已完成 —— 从文献、网页与在线 LLM 三渠道收集数据，经清洗、LLM 结构化提取与合并去重，当前发布数据包含 151 条去重词条；PyQt6 查询程序和 ChromaDB RAG 实验作为实验产物保留。向量库生成脚本位于 `experiments/rag/embedding_test.py`，其输出位于 `experiments/rag/emc_vector_db/`；Web 前端、Python 后端和 Agent Runtime 正在按新架构重构。
+> **当前进度**：151 条 EMC 案例数据和 Agent/RAG 实验已完成，正在重构为“本地 Ollama + 工具调用 + RAG + 会话桌面端”的轻量正规 Agent。旧 PyQt6 数据库查询程序仅作为历史实验保留，其表格与 Excel 导出不属于新 Agent 的迁移目标。
 
 <p align="center">
   <strong>简体中文</strong>
@@ -24,8 +24,8 @@
   <a href="https://github.com/JesonChou/EMC-fault-probe/issues"><img src="https://img.shields.io/github/issues/JesonChou/EMC-fault-probe?style=flat-square&color=58a6ff&labelColor=161b22&logo=github&logoColor=white" alt="issues"/></a>
   <a href="./CONTRIBUTING.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square&labelColor=161b22" alt="PRs welcome"/></a>
 </p>
-<h3 align="center">输入中文故障描述，一键检索"故障—原因—方案"</h3>
-<p align="center">从文献、网页与在线 LLM 三渠道收集 EMC 故障案例，经数据清洗与 LLM 结构化提取，构建约 200 条结构化词条；桌面程序支持精确检索、LLM 语义扩展与 Excel 导出。</p>
+<h3 align="center">对话式 EMC 诊断 · 本地 RAG · 工具调用</h3>
+<p align="center">向 Agent 描述电磁兼容问题；模型按需检索本地案例资料，并以流式对话给出分析、排查步骤和整改建议。</p>
 
 <p align="center">
   <img src="./README.assets/main.png" alt="故障库查询程序主界面" width="720"/>
@@ -38,7 +38,7 @@
 
 > [!NOTE]
 >
-> 未安装本地 Ollama 模型时，程序自动降级为普通关键词检索，全部功能不受影响。
+> 下方截图和旧运行命令记录的是历史 PyQt6 故障库实验，用于追溯项目演进；新桌面端不会复刻其表格和 Excel 导出功能。正式 Agent 入口将在对应迁移阶段更新。
 
 ## Install
 

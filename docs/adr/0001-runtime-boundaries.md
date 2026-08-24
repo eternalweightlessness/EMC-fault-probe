@@ -5,8 +5,8 @@
 
 ## 背景
 
-仓库已经通过实验验证了 Ollama native tool calling、Prompt 工具协议、RAG、
-多轮记忆和 PyQt6 桌面查询。下一步需要把这些能力组成正规 Agent 应用，同时
+仓库已经通过新骨架实验验证了 Ollama native tool calling、Prompt 工具协议、
+RAG 和多轮记忆。下一步需要把这些能力组成正规 Agent 应用，同时
 避免在需求仍简单时引入成熟 harness 的复杂度。
 
 ## 决策
@@ -17,7 +17,7 @@
 4. FastAPI 后端作为桌面端和未来 Web 端的统一应用边界。
 5. PyQt6 桌面端只通过 API 使用后端，不直接调用模型和数据库。
 6. JSON/JSONL 继续作为当前规模的数据和会话存储，不提前引入关系数据库。
-7. 每个迁移阶段使用独立分支和 PR；后续 PR 以已合并前置 PR 为 base。
+7. 每个独立板块使用直接基于 `main` 的分支和 PR；最后由集成分支完成装配。
 
 ## 原因
 

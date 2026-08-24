@@ -30,12 +30,10 @@
 | 可重复构建向量索引（upsert/rebuild） | `scripts/data/build_vector_index.py` | 3 |
 | 关键词/指定字段搜索 | `emc_core.application.search_service` | 3 |
 | Ollama 不可用时降级关键词搜索 | backend composition/search service | 3 |
-| 结构化结果与 Excel 导出 | backend API + desktop save dialog | 3/5 |
 
 来源：
 
 - `experiments/rag/embedding_test.py`
-- `experiments/desktop/pyqt6_app/EMC_Fault_Database_Test.py`
 - `emc_core.retrieval.json_search`
 
 ## 3. Ollama 实验
@@ -66,7 +64,10 @@
 
 来源：`experiments/memory/multi_turn.py` 和 `persistent_session.py`。
 
-## 5. PyQt6 桌面实验
+## 5. 桌面 Agent 产品目标
+
+新桌面端依据 Agent 使用目标设计，不迁移旧 PyQt6 故障库程序的页面结构和业务
+功能。旧程序仅作为历史实验保留，不是新桌面的功能需求来源。
 
 | 实验能力 | 正式位置 | 阶段 |
 | --- | --- | --- |
@@ -74,14 +75,13 @@
 | 会话侧栏和恢复 | desktop session model | 5 |
 | 对话、思考折叠区、工具轨迹 | desktop chat widgets | 5 |
 | 模型/Ollama 状态 | desktop header/status | 5 |
-| 搜索结果表格 | desktop result widget | 5 |
-| Excel 文件选择与导出 | desktop action + backend export | 5 |
 | 可读的浅/深色样式 | desktop stylesheet | 5 |
 | PyCharm 开发热更新 | `scripts/dev/run-desktop-agent.ps1` | 5 |
 | Windows exe | PyInstaller spec/build script | 6 |
 
-旧 UI 生成文件不复制到新界面；保留字段显示和导出行为，交互重新设计为类似
-Codex 的会话式 Agent 工作台。
+新界面是类似 Codex 的会话式 Agent 工作台：用户提出 EMC 问题，模型按需调用
+`search_cases` 做 RAG 检索，再以对话形式给出分析和整改建议。旧程序的结果表格、
+Excel 导出和数据库管理式交互明确不迁移。
 
 ## 6. 完成定义
 

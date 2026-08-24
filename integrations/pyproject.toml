@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emc-integrations"
+version = "0.1.0"
+description = "External model and vector-store adapters for EMC Fault Probe."
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = [
+    "emc-core>=0.1.0",
+    "ollama>=0.4",
+    "chromadb>=1.5",
+    "numpy>=1.26",
+]
+
+# package-dir 把发布包名 integrations 映射到当前目录。显式列出包可避免把
+# research README、patch 或带连字符的预留 harness 目录误打进 Python wheel。
+[tool.setuptools]
+package-dir = { integrations = "." }
+packages = [
+    "integrations",
+    "integrations.models",
+    "integrations.models.ollama",
+    "integrations.vector_stores",
+    "integrations.vector_stores.chroma",
+]

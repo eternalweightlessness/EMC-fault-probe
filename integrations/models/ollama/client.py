@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import AsyncIterator, Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 from uuid import uuid4
 
+from emc_core.llm.streaming import ModelStreamEvent, ModelStreamEventType
 from emc_core.ports.llm import ChatMessage, LLMOutput
 from emc_core.tools.models import ToolCall, ToolSpec
 from ollama import AsyncClient, ChatResponse
@@ -276,3 +277,54 @@ class OllamaLLM:
             # uuid4().hex 会返回随机的 32 位十六进制字符串。
             call_id=f"ollama-{uuid4().hex}",
         )
+
+    async def stream(
+        self,
+        messages: Sequence[ChatMessage],
+        tools: Sequence[ToolSpec],
+    ) -> AsyncIterator[ModelStreamEvent]:
+        """使用 Ollama 流式接口分开发送思考、回答和 native tool call。"""
+
+        response_stream = await self._client.chat(
+            model=self._model,
+            messages=[_message_to_ollama(message) for message in messages],
+            tools=[_tool_spec_to_ollama(spec) for spec in tools] or None,
+            stream=True,
+            think=self._think,
+            options=self._options,
+        )
+        if isinstance(response_stream, ChatResponse):
+            raise TypeError("Ollama stream=True 时应返回异步迭代器。")
+
+        native_tool_calls: list[Any] = []
+        async for chunk in response_stream:
+            message = chunk.message
+            thinking = getattr(message, "thinking", None)
+            if thinking:
+                yield ModelStreamEvent(
+                    type=ModelStreamEventType.THINKING_DELTA,
+                    text=str(thinking),
+                )
+            if message.content:
+                yield ModelStreamEvent(
+                    type=ModelStreamEventType.CONTENT_DELTA,
+                    text=message.content,
+                )
+            if message.tool_calls:
+                native_tool_calls.extend(message.tool_calls)
+
+        if len(native_tool_calls) > 1:
+            raise RuntimeError(
+                "当前 Agent Loop 每轮只支持一个工具调用，"
+                f"Ollama 本轮返回了 {len(native_tool_calls)} 个。"
+            )
+        if native_tool_calls:
+            function = native_tool_calls[0].function
+            yield ModelStreamEvent(
+                type=ModelStreamEventType.TOOL_CALL,
+                tool_call=ToolCall(
+                    name=function.name,
+                    arguments=_normalize_arguments(function.arguments),
+                    call_id=f"ollama-{uuid4().hex}",
+                ),
+            )

@@ -5,6 +5,7 @@ from typing import Any
 
 from emc_core.agent.state import AgentState
 from emc_core.domain.events import AgentEvent, AgentEventType
+from emc_core.llm.streaming import ModelStreamEventType, StreamingLLM
 from emc_core.ports.llm import LLM
 from emc_core.tools.models import ToolCall, ToolResult, ToolSpec
 
@@ -71,10 +72,49 @@ async def run_loop(
 
         state.step += 1
 
-        response = await llm.complete(
-            messages=state.messages,
-            tools=tools,
-        )
+        if isinstance(llm, StreamingLLM):
+            content_parts: list[str] = []
+            streamed_tool_call: ToolCall | None = None
+            async for model_event in llm.stream(state.messages, tools):
+                # async for 每取得一个模型增量都会回到这里一次，因此可以在
+                # 长回答生成期间及时响应桌面端的“停止”操作。若只在 while
+                # 开头检查，用户必须等整段回答生成完，取消按钮才会生效。
+                if state.cancelled:
+                    yield AgentEvent(
+                        type=AgentEventType.TURN_FAILED,
+                        session_id=state.session_id,
+                        step=state.step,
+                        data={"reason": "cancelled"},
+                    )
+                    return
+                if model_event.type is ModelStreamEventType.THINKING_DELTA:
+                    yield AgentEvent(
+                        type=AgentEventType.ASSISTANT_THINKING_DELTA,
+                        session_id=state.session_id,
+                        step=state.step,
+                        data={"delta": model_event.text},
+                    )
+                elif model_event.type is ModelStreamEventType.CONTENT_DELTA:
+                    content_parts.append(model_event.text)
+                    yield AgentEvent(
+                        type=AgentEventType.ASSISTANT_CONTENT_DELTA,
+                        session_id=state.session_id,
+                        step=state.step,
+                        data={"delta": model_event.text},
+                    )
+                elif model_event.type is ModelStreamEventType.TOOL_CALL:
+                    streamed_tool_call = model_event.tool_call
+
+            response: str | ToolCall
+            if streamed_tool_call is not None:
+                response = streamed_tool_call
+            else:
+                response = "".join(content_parts)
+        else:
+            response = await llm.complete(
+                messages=state.messages,
+                tools=tools,
+            )
 
         if isinstance(response, str):
             state.messages.append(

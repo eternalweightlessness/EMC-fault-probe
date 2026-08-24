@@ -16,9 +16,11 @@ experiments/rag/emc_vector_db/
 data/runtime/sessions/*
 data/runtime/workspaces/*
 data/runtime/logs/*
+data/runtime/vector_store/*
 !data/runtime/sessions/.gitkeep
 !data/runtime/workspaces/.gitkeep
 !data/runtime/logs/.gitkeep
+!data/runtime/vector_store/.gitkeep
 
 # 实验脚本在其工作目录产生的日志
 experiments/**/ollama_serve.log

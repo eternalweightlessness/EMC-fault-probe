@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="EMC UI (One Click)" type="CompoundRunConfigurationType">
+    <toRun name="EMC Backend (Debug)" type="PythonConfigurationType" />
+    <toRun name="EMC Web UI (Vite)" type="js.build_tools.npm" />
+    <method v="2" />
+  </configuration>
+</component>

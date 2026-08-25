@@ -30,6 +30,8 @@ class ModelsResponse(BaseModel):
     ollama_available: bool
     configured: list[ModelInfo]
     installed: list[str]
+    default_chat_model: str
+    chat_candidates: list[str]
 
 
 @router.get("/models", response_model=ModelsResponse)
@@ -40,6 +42,14 @@ async def list_models(
 
     status = await container.ollama_status()
     installed = list(status["models"])
+    chat_candidates = [
+        name
+        for name in installed
+        if not is_ollama_model_installed(
+            container.settings.embedding_model,
+            [name],
+        )
+    ]
     return ModelsResponse(
         ollama_available=bool(status["available"]),
         configured=[
@@ -61,4 +71,6 @@ async def list_models(
             ),
         ],
         installed=installed,
+        default_chat_model=container.settings.chat_model,
+        chat_candidates=chat_candidates,
     )
